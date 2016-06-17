@@ -71,6 +71,7 @@ if ($dbconnect) {
 }
 
 // Dump all tables of database
+echo "\nDropping all tables from Database!"
 
 $dbconnect->query('SET foreign_key_checks = 0');
 if ($result = $dbconnect->query("SHOW TABLES")) {
@@ -87,11 +88,7 @@ echo "\nDrop done!\n";
 
 //import_sql($dumpsql);
 echo "\nImporting backup database...";
-$import = true;
-while ($import == true) {
-    echo shell_exec("mysql -u".$CFG->dbuser." -p".$CFG->dbpass." ".$CFG->dbname." < ".$dumpsql);
-    $import = "done";
-}
+echo shell_exec("mysql -u".$CFG->dbuser." -p".$CFG->dbpass." ".$CFG->dbname." < ".$dumpsql);
 echo "\nDatabase Imported!";
 
 // TODO: Remove current Moodledata
