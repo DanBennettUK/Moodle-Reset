@@ -1,6 +1,6 @@
 <?php
 define('CLI_SCRIPT', true);
-require_once('../config.php');
+require_once(__DIR__ . '/../config.php');
 
 $backup = false;
 $restore = false;
@@ -10,20 +10,22 @@ $fulldir = null;
 $home = getcwd();
 
 // Filenames
-$dumpsql = "dump.sql"; // MySQL Database Dump file
-$mdata = "moodledata.tar.gz"; // Moodledata backup file
+// MySQL Database Dump file
+$dumpsql = "dump.sql";
+// Moodledata backup file
+$mdata = "moodledata.tar.gz";
 
 // Messages
 $helpmsg = 
-"\nTo restore: Run with no arguments for restoring.
-Ensure ".$dumpsql." and ".$mdata." exists in the current directory.
-
+"\nEnsure ".$dumpsql." and ".$mdata." exists in the current directory.
 --backup : Runs backup script, dumping Database and backing up Moodledata into the ".$home." directory.
+           Run this first to generate backup files for restoring later.
+
+--restore : Runs restore script using the dumped database and Moodledata archive supplied. 
 \n";
 
 $introRestore = 
 "\nThis script will reset the current Moodle site back to it's original state with the provided backup files.
-
 Ensure 'moodledata.tar.gz' and 'dump.sql' exists in the ".$home." folder.
 \n";
 
@@ -58,24 +60,28 @@ shell_exec("php ../admin/cli/maintenance.php --enable");
 
 // Check for an argument
 if (isset($argv[1])) {
-    $backupopt = $argv[1]; // Get only the argument we want out of the array
-} else {
-    $backupopt = null; // If null, that means there was no argument
+    $options = $argv[1];
+    // 	Get only the argument we want out of the array
+}
+else {
+    $options = null;
+    // 	If null, that means there was no argument
 }
 
 // Check if it's the argument we want
-if ($backupopt == '--backup') {
+if ($options == '--backup') {
     $backup = true;
-} elseif ($backupopt == '-h' OR $backupopt == '--help') {
-    
+    $restore = false;
+} elseif ($options == '--restore') {
+    $restore = true; 
+    $backup = false;
+} elseif ($options == '-h' OR $options == '--help') {
     echo $helpmsg;
-} elseif ($backupopt != null) {
+} elseif ($options != null) {
     echo "Only --backup is supported. See -h.\n";
 } else {
-    $backup = false;
-    $restore = true;
+    echo "\nMissing argument! Run --help for information.\n";
 }
-
 // Check $CFG->dataroot exists just in case...
 if (!file_exists($CFG->dataroot)) {
     $backup = false;
@@ -83,11 +89,9 @@ if (!file_exists($CFG->dataroot)) {
     $fulldir = $CFG->dataroot;
     $dir = str_replace('/moodledata','',$fulldir);
 }
-
 // Run restore!
 if ($restore === true) { // Restoring...
     echo $introRestore;
-
     // Check files exist in current directory
     if (file_exists($dumpsql)) {
         echo $dumpsql . " found!\n";
@@ -101,7 +105,6 @@ if ($restore === true) { // Restoring...
         echo $mdata . " not found!\n";
         die();
     }
-
     // Connect to MySQL Database
     $dbconnect = new mysqli($CFG->dbhost, $CFG->dbuser, $CFG->dbpass, $CFG->dbname);
     if ($dbconnect) {
@@ -109,10 +112,8 @@ if ($restore === true) { // Restoring...
     } else {
         echo "Couldn't connect to database!\n" . mysqli_get_host_info($dbconnect) . PHP_EOL;
     }
-
     // Dump all tables of database
     echo "Dropping all tables from Database!";
-
     $dbconnect->query('SET foreign_key_checks = 0');
     if ($result = $dbconnect->query("SHOW TABLES")) {
         //echo $result;
@@ -121,15 +122,12 @@ if ($restore === true) { // Restoring...
         }
     }
     $dbconnect->query('SET foreign_key_checks = 1');
-
     echo "\nDrop done!\n";
-
     // TODO: Import $dumpsql to database using mysqli rather than shell_exec.
     //import_sql($dumpsql);
     echo "\nImporting backup database...\n";
     shell_exec("mysql -u".$CFG->dbuser." -p".$CFG->dbpass." ".$CFG->dbname." < ".$dumpsql);
     echo "\nDatabase Imported!\n";
-
     //TODO: Remove current Moodledata
 ///var/www/moodles/stable_31/moodledata
     if ($fulldir != null) { // Check $dir isn't still null
@@ -138,7 +136,6 @@ if ($restore === true) { // Restoring...
     } else {
         echo "\nCannot find ".$fulldir."! This shouldn't happen...\n";
     }
-
     // TODO: Untar Moodledata backup to $CFG->dataroot location
     echo "Extracting backed up Moodledata\n";
     shell_exec("tar -xzf ".$mdata); // Extract to backup folder
@@ -147,9 +144,7 @@ if ($restore === true) { // Restoring...
     echo "Fixing permissions of Moodledata...\n";
     shell_exec ("chmod -R 777 ".$fulldir);
     echo "\nDone!\n";
-
 }
-
 if ($backup === true) {
     // Do backup stuff...
     echo $introRestore;
@@ -168,5 +163,4 @@ if ($backup === true) {
     shell_exec ("cd ".$home);
     echo "Done!\n";
 }
-
 shell_exec("php ../admin/cli/maintenance.php --disable");
