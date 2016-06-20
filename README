@@ -1,0 +1,14 @@
+This script is to automatically restore a site from supplied backup files.
+
+Extract this into the main Moodle directory (e.g. /var/www/html/moodle)
+
+Ensure backup Moodledata is called 'moodledata.tar.gz'
+Ensure backup database is called 'dump.sql'.
+
+Run the `reset_moodle.php` file via cron or directly with `php reset_moodle.php`
+
+---
+
+This script can also take a current backup of the Moodle site in preperation for automatic resets, using the `--backup` flag
+
+`php reset_moodle.php --backup'
