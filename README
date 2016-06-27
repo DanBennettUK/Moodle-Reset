@@ -7,6 +7,10 @@ Ensure backup database is called 'dump.sql'.
 
 Run the `reset_moodle.php` file via cron or directly with `php reset_moodle.php`
 
+If required, you can specify the location of the moodledata and database files:
+`--moodledata=/path/of/moodledata.tar.gz`
+`--database=/path/of/database.sql`
+
 ---
 
 This script can also take a current backup of the Moodle site in preperation for automatic resets, using the `--backup` flag
