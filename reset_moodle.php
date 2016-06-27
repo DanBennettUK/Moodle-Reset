@@ -6,6 +6,8 @@ $backup = false;
 $restore = false;
 $dir = null;
 $fulldir = null;
+$moodledata = null;
+$database = null;
 
 $home = getcwd(); // Get current directory for things later on... This needs improved.
 
@@ -166,13 +168,17 @@ if ($arg2 != null) {
 }
 
 // Check format of files
-if (strpos($moodledata, '.tar.gz') == false) {
-    echo "Moodledata must be in .tar.gz format and extension! \n";
-    die();
+if ($moodledata != null) {
+    if (strpos($moodledata, '.tar.gz') == false) {
+        echo "Moodledata must be in .tar.gz format and extension! \n";
+        die();
+    }
 }
-if (strpos($database, '.sql') == false) {
-    echo "Database must be in .sql format and extension! \n";
-    die();
+if ($database != null) {
+    if (strpos($database, '.sql') == false) {
+        echo "Database must be in .sql format and extension! \n";
+        die();
+    }
 }
 
 // Check the backup files exist...
