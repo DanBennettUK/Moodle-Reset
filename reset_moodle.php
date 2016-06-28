@@ -70,7 +70,7 @@ function dumpDatabase($host,$user,$pass,$name,$tables=false,$dumpsql ) {
     $mysqli = new mysqli($host,$user,$pass,$name);
     $mysqli->select_db($name);
     $mysqli->query("SET NAMES 'utf8'");
-    
+
     $queryTables    = $mysqli->query('SHOW TABLES');
     while($row = $queryTables->fetch_row()) {
         $target_tables[] = $row[0];
@@ -85,7 +85,7 @@ function dumpDatabase($host,$user,$pass,$name,$tables=false,$dumpsql ) {
         $res            =   $mysqli->query('SHOW CREATE TABLE '.$table);
         $TableMLine     =   $res->fetch_row();
         $content        = (!isset($content) ?  '' : $content) . "\n\n".$TableMLine[1].";\n\n";
-        
+
         for ($i = 0, $st_counter = 0; $i < $fields_amount;   $i++, $st_counter=0) {
             while($row = $result->fetch_row()) {
                 // When started (and every after 100 command cycle):
@@ -126,20 +126,20 @@ function dumpDatabase($host,$user,$pass,$name,$tables=false,$dumpsql ) {
 // Import database function
 // importDatabase($CFG->dbhost,$CFG->dbuser,$CFG->dbpass,$CFG->dbname,"dump.sql");
 function importDatabase($host,$user,$pass,$dbname,$sqlfile) ) {
-    set_time_limit(3000); 
+    set_time_limit(3000);
     $SQL_CONTENT = (strlen($sqlfile) > 200 ?  $sqlfile : file_get_contents($sqlfile));
-    $allLines = explode("\n",$SQL_CONTENT); 
+    $allLines = explode("\n",$SQL_CONTENT);
     $mysqli = new mysqli($host, $user, $pass, $dbname);
-    if (mysqli_connect_errno()) { 
+    if (mysqli_connect_errno()) {
         echo "Failed to connect to MySQL: " . mysqli_connect_error();
-    } 
+    }
     $foreignKey = $mysqli->query('SET foreign_key_checks = 0');
     preg_match_all("/\nCREATE TABLE(.*?)\`(.*?)\`/si", "\n". $SQL_CONTENT, $target_tables);
     foreach ($target_tables[2] as $table) {
         $mysqli->query('DROP TABLE IF EXISTS '.$table);
     }
     $foreignKey = $mysqli->query('SET foreign_key_checks = 1');
-    $mysqli->query("SET NAMES 'utf8'");	
+    $mysqli->query("SET NAMES 'utf8'");
     $templine = '';	// Temporary variable, used to store current query
     foreach ($allLines as $line) { // Loop through each line
         if (substr($line, 0, 2) != '--' && $line != '') {
