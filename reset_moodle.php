@@ -125,7 +125,7 @@ function dumpDatabase($host,$user,$pass,$name,$tables=false,$dumpsql ) {
 
 // Import database function
 // importDatabase($CFG->dbhost,$CFG->dbuser,$CFG->dbpass,$CFG->dbname,"dump.sql");
-function importDatabase($host,$user,$pass,$dbname,$sqlfile) ) {
+function importDatabase($host,$user,$pass,$dbname,$sqlfile) {
     set_time_limit(3000);
     $SQL_CONTENT = (strlen($sqlfile) > 200 ?  $sqlfile : file_get_contents($sqlfile));
     $allLines = explode("\n",$SQL_CONTENT);
