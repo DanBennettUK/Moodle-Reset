@@ -1,2 +1,2 @@
-dump.sql
-moodledata.tar.gz
+*.sql
+*.tar.gz
