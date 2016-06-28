@@ -64,9 +64,9 @@ $htmlText = "
 ";
 
 // FUNCTIONS
-// Dump database function
+// TODO: Fix Dump database function - causing issues with NULLed statements
 // dumpDatabase($CFG->dbhost,$CFG->dbuser,$CFG->dbpass,$CFG->dbname,$tables=false,$dumpsql);
-function dumpDatabase($host,$user,$pass,$name,$tables=false,$dumpsql ) {
+function dumpDatabase($host,$user,$pass,$name,$dumpsql ) {
     $mysqli = new mysqli($host,$user,$pass,$name);
     $mysqli->select_db($name);
     $mysqli->query("SET NAMES 'utf8'");
