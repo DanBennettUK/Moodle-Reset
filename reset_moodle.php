@@ -351,7 +351,8 @@ if ($backup === true) { // Backups!
         unlink($mdata);
     }
     echo "Dumping Database...\n";
-    dumpDatabase($CFG->dbhost,$CFG->dbuser,$CFG->dbpass,$CFG->dbname,$tables=false,$dumpsql);
+    //dumpDatabase($CFG->dbhost,$CFG->dbuser,$CFG->dbpass,$CFG->dbname,$tables=false,$dumpsql);
+    shell_exec("mysqldump -u".$CFG->dbuser." -p".$CFG->dbpass." ".$CFG->dbname." > dump.sql");
     echo "Backing up Moodledata...\n";
     shell_exec ("cd ".$dir." && tar -czf ".$mdata." moodledata  --exclude 'moodledata/sessions' --exclude 'moodledata/trashdir'");
     shell_exec ("cd ".$dir." && mv ".$mdata." ".$home);
