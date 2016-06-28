@@ -12,7 +12,7 @@ $database = null;
 $home = getcwd();
 // Get current directory for things later on... This needs improved.
 
-// TODO: Make database import use MySQLi instead of shell_exec
+// TODO: Handle moodledata backup & restores without using shell_exec()
 
 // Filenames
 // MySQL Database Dump file
@@ -64,9 +64,9 @@ $htmlText = "
 ";
 
 // FUNCTIONS
-
+// Dump database function
+// dumpDatabase($CFG->dbhost,$CFG->dbuser,$CFG->dbpass,$CFG->dbname,$tables=false,$dumpsql);
 function dumpDatabase($host,$user,$pass,$name,$tables=false,$dumpsql ) {
-    // Dump database function
     $mysqli = new mysqli($host,$user,$pass,$name);
     $mysqli->select_db($name);
     $mysqli->query("SET NAMES 'utf8'");
@@ -123,13 +123,41 @@ function dumpDatabase($host,$user,$pass,$name,$tables=false,$dumpsql ) {
     fclose($tmpdb);
 }
 
+// Import database function
+// importDatabase($CFG->dbhost,$CFG->dbuser,$CFG->dbpass,$CFG->dbname,"dump.sql");
+function importDatabase($host,$user,$pass,$dbname,$sqlfile) ) {
+    set_time_limit(3000); 
+    $SQL_CONTENT = (strlen($sqlfile) > 200 ?  $sqlfile : file_get_contents($sqlfile));
+    $allLines = explode("\n",$SQL_CONTENT); 
+    $mysqli = new mysqli($host, $user, $pass, $dbname);
+    if (mysqli_connect_errno()) { 
+        echo "Failed to connect to MySQL: " . mysqli_connect_error();
+    } 
+    $foreignKey = $mysqli->query('SET foreign_key_checks = 0');
+    preg_match_all("/\nCREATE TABLE(.*?)\`(.*?)\`/si", "\n". $SQL_CONTENT, $target_tables);
+    foreach ($target_tables[2] as $table) {
+        $mysqli->query('DROP TABLE IF EXISTS '.$table);
+    }
+    $foreignKey = $mysqli->query('SET foreign_key_checks = 1');
+    $mysqli->query("SET NAMES 'utf8'");	
+    $templine = '';	// Temporary variable, used to store current query
+    foreach ($allLines as $line) { // Loop through each line
+        if (substr($line, 0, 2) != '--' && $line != '') {
+            $templine .= $line; // (if it is not a comment..) Add this line to the current segment
+            if (substr(trim($line), -1, 1) == ';') { // If it has a semicolon at the end, it's the end of the query
+                $mysqli->query($templine) or print('Error performing query \'<strong>' . $templine . '\': ' . $mysqli->error . '<br /><br />');  $templine = ''; // set variable to empty, to start picking up the lines after ";"
+            }
+        }
+    }
+}
+
 // Create temporary index.php for maintenance notice...
 $moodleIndex = __DIR__ . "/../index.php";
 $backupIndex = __DIR__ . "/../index.backup.tmp";
 
 if (file_exists($backupIndex) && file_exists($moodleIndex)) {
-    // 	If both $moodleIndex and $backupIndex exist
-            echo "Both ".$moodleIndex." and ".$backupIndex." exist! Clean before continuing!\n";
+    // 	If both $moodleIndex and $backupIndex exist, halt. We cannot guess what should be done with existing files
+    echo "Both ".$moodleIndex." and ".$backupIndex." exist! Clean before continuing!\n";
     die();
 }
 elseif (file_exists($moodleIndex)) {
@@ -282,11 +310,11 @@ if ($restore === true) { // Restore!
     }
     $dbconnect->query('SET foreign_key_checks = 1');
     echo "\nDrop done!\n";
-    // TODO: Import $dumpsql to database using mysqli rather than shell_exec.
-    //import_sql($dumpsql);
+
     echo "\nImporting backup database...\n";
-    shell_exec("mysql -u".$CFG->dbuser." -p".$CFG->dbpass." ".$CFG->dbname." < ".$dumpsql);
+    importDatabase($CFG->dbhost,$CFG->dbuser,$CFG->dbpass,$CFG->dbname,$dumpsql);
     echo "\nDatabase Imported!\n";
+
     // Remove current Moodledata
     if ($fulldir != null) { // Check $dir isn't still null
         echo "\nRemoving ".$fulldir,"\n";
@@ -294,6 +322,7 @@ if ($restore === true) { // Restore!
     } else {
         echo "\nCannot find ".$fulldir."! This shouldn't happen...\n";
     }
+
     // Untar Moodledata backup to $CFG->dataroot location
     echo "Extracting backed up Moodledata\n";
     shell_exec("tar -xzf ".$mdata); // Extract to backup folder
@@ -301,9 +330,11 @@ if ($restore === true) { // Restore!
     shell_exec("mv moodledata ".$fulldir); // Move into place...;
     echo "Fixing permissions of Moodledata...\n";
     shell_exec ("chmod -R 777 ".$fulldir);
+
     // Remove temp index.php
     unlink($moodleIndex);
     rename($backupIndex, $moodleIndex); // Rename index.php temporarily
+
     // Take out of Maintenance Mode
     shell_exec("php ../admin/cli/maintenance.php --disable");
     echo "\nDone!\n";
