@@ -336,8 +336,9 @@ if ($restore === true) { // Restore!
     shell_exec("mv moodledata ".$fulldir); // Move into place...;
     echo "Fixing permissions of Moodledata...\n";
     shell_exec ("chmod -R 777 ".$fulldir);
-    shell_exec ("semanage fcontext -a -t httpd_sys_content_t ".$fulldir."");
-    shell_exec ("restorecon -R ".$fulldir."");
+    echo "Fixing SELinux permissions on Moodledata...\n";
+    shell_exec ("semanage fcontext -a -t httpd_sys_content_t ".$fulldir);
+    shell_exec ("restorecon -R ".$fulldir);
 
     // If update flag exists, Update the site
     if ($update == true) {
