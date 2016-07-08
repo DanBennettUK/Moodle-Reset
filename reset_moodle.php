@@ -6,23 +6,18 @@ $backup = false;
 $restore = false;
 $dir = null;
 $fulldir = null;
-$moodledata = null;
-$database = null;
+$moodledata = "moodledata.tar.gz"; // Default File
+$database = "dump.sql"; // Default File
+$update = false;
 
 $home = getcwd();
 // Get current directory for things later on... This needs improved.
 
 // TODO: Handle moodledata backup & restores without using shell_exec()
 
-// Filenames
-// MySQL Database Dump file
-$dumpsql = "dump.sql";
-// Moodledata backup file
-$mdata = "moodledata.tar.gz";
-
 // Messages
 $helpmsg =
-"\nBy default, ensure ".$dumpsql." and ".$mdata." exists in the current directory.
+"\nBy default, ensure ".$database." and ".$moodledata." exists in the current directory.
 --backup :  Runs backup script, dumping Database and backing up Moodledata into the ".$home." directory.
             Run this first to generate backup files for restoring later.
             Example:
@@ -65,8 +60,8 @@ $htmlText = "
 
 // FUNCTIONS
 // TODO: Fix Dump database function - causing issues with NULLed statements
-// dumpDatabase($CFG->dbhost,$CFG->dbuser,$CFG->dbpass,$CFG->dbname,$tables=false,$dumpsql);
-function dumpDatabase($host,$user,$pass,$name,$dumpsql ) {
+// dumpDatabase($CFG->dbhost,$CFG->dbuser,$CFG->dbpass,$CFG->dbname,$tables=false,$database);
+function dumpDatabase($host,$user,$pass,$name,$database ) {
     $mysqli = new mysqli($host,$user,$pass,$name);
     $mysqli->select_db($name);
     $mysqli->query("SET NAMES 'utf8'");
@@ -118,7 +113,7 @@ function dumpDatabase($host,$user,$pass,$name,$dumpsql ) {
         }
         $content .="\n";
     }
-    $tmpdb = fopen($dumpsql, "w") or die("Unable to open file!");
+    $tmpdb = fopen($database, "w") or die("Unable to open file!");
     fwrite($tmpdb, $content);
     fclose($tmpdb);
 }
@@ -194,6 +189,12 @@ if (isset($argv[3])) {
 else {
     $arg3 = null;
 }
+if (isset($argv[4])) {
+    $arg4 = $argv[4];
+}
+else {
+    $arg4 = null;
+}
 
 // Check if it's the argument we want
 if ($options == '--backup') {
@@ -206,16 +207,16 @@ if ($options == '--backup') {
     echo $helpmsg;
     die();
 } elseif ($options != null) {
-    echo "Only --backup is supported. See -h.\n";
+    echo "Unsuppoted Option. See --help for information.\n";
 } else {
     echo "\nMissing argument! Run --help for information.\n";
 }
 // Check second and thirds are specified...
-if ($arg2 == null && $arg3 == null) {
+if ($backup == false && $restore == false) {
     if ($options != "--backup") {
         echo "No backup files specified. Using default location.\n";
-        $moodledata = $mdata;
-        $database = $dumpsql;
+        $moodledata = $moodledata;
+        $database = $database;
     }
 } elseif (strpos($arg2, '--database=') !== false && $arg3 == null) {
     echo "Moodledata backup file not specified! Please specify with \"--moodledata=\"\n";
@@ -223,6 +224,10 @@ if ($arg2 == null && $arg3 == null) {
 } elseif (strpos($arg2, '--moodledata=') !== false && $arg3 == null) {
     echo "Database backup file not specified! Please specify with \"--database=\"\n";
     die();
+} elseif (strpos($arg2, '--update') !== false && $arg3 == null) {
+    $update = true;
+} elseif (strpos($arg4, '--update') !== false && $arg2 != null && $arg3 != null) {
+    $update = true;
 }
 // Sort arguments into the right variables...
 if ($arg2 != null) {
@@ -267,6 +272,7 @@ if (!file_exists($CFG->dataroot)) {
     $fulldir = $CFG->dataroot;
     $dir = str_replace('/moodledata','',$fulldir);
 }
+
 if ($restore === true) { // Restore!
     echo $introRestore;
     // Setting Maintenance Mode on
@@ -278,19 +284,19 @@ if ($restore === true) { // Restore!
     fclose($tmpIndex);
     // Check files exist
     if ($database != null) {
-        $dumpsql = $database;
-    } elseif (file_exists($dumpsql)) {
-        echo $dumpsql . " found!\n";
+        $database = $database;
+    } elseif (file_exists($database)) {
+        echo $database . " found!\n";
     } else {
-        echo $dumpsql . " not found!\n";
+        echo $database . " not found!\n";
         die();
     }
     if ($moodledata != null) {
-        $mdata = $moodledata;
-    } elseif (file_exists($mdata)) {
-        echo $mdata . " found!\n";
+        $moodledata = $moodledata;
+    } elseif (file_exists($moodledata)) {
+        echo $moodledata . " found!\n";
     } else {
-        echo $mdata . " not found!\n";
+        echo $moodledata . " not found!\n";
         die();
     }
     // Connect to MySQL Database
@@ -312,7 +318,7 @@ if ($restore === true) { // Restore!
     echo "\nDrop done!\n";
 
     echo "\nImporting backup database...\n";
-    importDatabase($CFG->dbhost,$CFG->dbuser,$CFG->dbpass,$CFG->dbname,$dumpsql);
+    importDatabase($CFG->dbhost,$CFG->dbuser,$CFG->dbpass,$CFG->dbname,$database);
     echo "\nDatabase Imported!\n";
 
     // Remove current Moodledata
@@ -325,11 +331,19 @@ if ($restore === true) { // Restore!
 
     // Untar Moodledata backup to $CFG->dataroot location
     echo "Extracting backed up Moodledata\n";
-    shell_exec("tar -xzf ".$mdata); // Extract to backup folder
+    shell_exec("tar -xzf ".$moodledata); // Extract to backup folder
     echo "Moving Moodledata to correct location\n";
     shell_exec("mv moodledata ".$fulldir); // Move into place...;
     echo "Fixing permissions of Moodledata...\n";
     shell_exec ("chmod -R 777 ".$fulldir);
+
+    // If update flag exists, Update the site
+    if ($update == true) {
+        shell_exec("cd ".$dir);
+        echo "Updating site...";
+        shell_exec("git pull");
+        echo "Updated!";
+    }
 
     // Remove temp index.php
     unlink($moodleIndex);
@@ -339,23 +353,23 @@ if ($restore === true) { // Restore!
     shell_exec("php ../admin/cli/maintenance.php --disable");
     echo "\nDone!\n";
 }
-if ($backup === true) { // Backups!
+if ($backup == true) { // Backups!
     echo $introBackup;
     // Setting Maintenance Mode on
     shell_exec("php ../admin/cli/maintenance.php --enable");
     echo "Backing up site...\n";
-    if (file_exists($dumpsql)) {
-        unlink($dumpsql);
+    if (file_exists($database)) {
+        unlink($database);
     }
-    if (file_exists($mdata)) {
-        unlink($mdata);
+    if (file_exists($moodledata)) {
+        unlink($moodledata);
     }
     echo "Dumping Database...\n";
-    //dumpDatabase($CFG->dbhost,$CFG->dbuser,$CFG->dbpass,$CFG->dbname,$tables=false,$dumpsql);
+    //dumpDatabase($CFG->dbhost,$CFG->dbuser,$CFG->dbpass,$CFG->dbname,$tables=false,$database);
     shell_exec("mysqldump -u".$CFG->dbuser." -p".$CFG->dbpass." ".$CFG->dbname." > dump.sql");
     echo "Backing up Moodledata...\n";
-    shell_exec ("cd ".$dir." && tar -czf ".$mdata." moodledata  --exclude 'moodledata/sessions' --exclude 'moodledata/trashdir'");
-    shell_exec ("cd ".$dir." && mv ".$mdata." ".$home);
+    shell_exec ("cd ".$dir." && tar -czf ".$moodledata." moodledata  --exclude 'moodledata/sessions' --exclude 'moodledata/trashdir'");
+    shell_exec ("cd ".$dir." && mv ".$moodledata." ".$home);
     shell_exec ("cd ".$home);
     // Take out of Maintenance Mode
     shell_exec("php ../admin/cli/maintenance.php --disable");
