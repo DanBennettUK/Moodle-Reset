@@ -242,6 +242,20 @@ if ($arg2 != null) {
         }
     }
 }
+
+// Check $CFG->dataroot can be found...
+if (!file_exists($CFG->dataroot)) {
+    if ($backup == true) {
+        $backup = false;
+        die("Cannot perform backup, $CFG->dataroot not found");
+    }
+} else {
+    $fulldir = $CFG->dataroot;
+    $datadir = substr($fulldir, strrpos($fulldir, '/') + 1); //Get actual name of the data folder...
+    $dir = str_replace($datadir,'',$fulldir); //Strip name of folder from dir
+    $moodledata = $datadir.".tar.gz";
+}
+
 // Check format of files
 if ($moodledata != null) {
     if (strpos($moodledata, '.tar.gz') == false) {
@@ -263,18 +277,6 @@ if ($options != "--backup") {
     if (!file_exists($database)) {
         echo "Cannot find ".$database."! Please check the path and try again. \n";
     }
-}
-// Check $CFG->dataroot can be found...
-if (!file_exists($CFG->dataroot)) {
-    if ($backup == true) {
-        $backup = false;
-        die("Cannot perform backup, $CFG->dataroot not found");
-    }
-} else {
-    $fulldir = $CFG->dataroot;
-    $datadir = substr($fulldir, strrpos($fulldir, '/') + 1); //Get actual name of the data folder...
-    $dir = str_replace($datadir,'',$fulldir); //Strip name of folder from dir
-    $moodledata = $datadir.".tar.gz";
 }
 
 if ($restore === true) { // Restore!
@@ -349,6 +351,7 @@ if ($restore === true) { // Restore!
         shell_exec("cd ".$dir);
         echo "Updating site...";
         shell_exec("git pull");
+        shell_exec("php ../admin/cli/upgrade.php --non-interactive");
         echo "Updated!";
     }
 
