@@ -272,8 +272,9 @@ if (!file_exists($CFG->dataroot)) {
     }
 } else {
     $fulldir = $CFG->dataroot;
-    $dir = str_replace('/moodledata','',$fulldir);
     $datadir = substr($fulldir, strrpos($fulldir, '/') + 1); //Get actual name of the data folder...
+    $dir = str_replace($datadir,'',$fulldir); //Strip name of folder from dir
+    $moodledata = $datadir.".tar.gz";
 }
 
 if ($restore === true) { // Restore!
@@ -374,8 +375,8 @@ if ($backup == true) { // Backups!
     //dumpDatabase($CFG->dbhost,$CFG->dbuser,$CFG->dbpass,$CFG->dbname,$tables=false,$database);
     shell_exec("mysqldump -u".$CFG->dbuser." -p".$CFG->dbpass." ".$CFG->dbname." > dump.sql");
     echo "Backing up ".$datadir."...\n";
-    shell_exec ("cd ".$dir." && tar -czf ".$moodledata." ".$datadir." --exclude '".$datadir."/sessions' --exclude '".$datadir."/trashdir'");
-    shell_exec ("cd ".$dir." && mv ".$moodledata." ".$home);
+    shell_exec ("cd ".$dir." && tar -czf /tmp/".$moodledata." ".$datadir." --exclude '".$datadir."/sessions' --exclude '".$datadir."/trashdir'");
+    shell_exec ("cd ".$dir." && mv /tmp/".$moodledata." ".$home);
     shell_exec ("cd ".$home);
     // Take out of Maintenance Mode
     shell_exec("php ../admin/cli/maintenance.php --disable");
