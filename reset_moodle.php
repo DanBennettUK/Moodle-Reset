@@ -32,7 +32,6 @@ $helpmsg =
 
 $introRestore =
 "\nThis script will reset the current Moodle site back to it's original state with the provided backup files.
-Ensure 'moodledata.tar.gz' and 'dump.sql' exists in the ".$home." folder.
 \n";
 
 $introBackup =
@@ -265,9 +264,12 @@ if ($options != "--backup") {
         echo "Cannot find ".$database."! Please check the path and try again. \n";
     }
 }
-// Check $CFG->dataroot exists just in case...
+// Check $CFG->dataroot can be found...
 if (!file_exists($CFG->dataroot)) {
-    $backup = false;
+    if ($backup == true) {
+        $backup = false;
+        die("Cannot perform backup, $CFG->dataroot not found");
+    }
 } else {
     $fulldir = $CFG->dataroot;
     $dir = str_replace('/moodledata','',$fulldir);
@@ -331,13 +333,13 @@ if ($restore === true) { // Restore!
     }
 
     // Untar Moodledata backup to $CFG->dataroot location
-    echo "Extracting backed up Moodledata\n";
+    echo "Extracting backed up Data\n";
     shell_exec("tar -xzf ".$moodledata); // Extract to backup folder
-    echo "Moving Moodledata to correct location\n";
-    shell_exec("mv moodledata ".$fulldir); // Move into place...;
-    echo "Fixing permissions of Moodledata...\n";
+    echo "Moving Data directory to correct location\n";
+    shell_exec("mv ".$datadir." ".$fulldir); // Move into place...;
+    echo "Fixing permissions of ".$datadir."...\n";
     shell_exec ("chmod -R 777 ".$fulldir);
-    echo "Fixing SELinux permissions on Moodledata...\n";
+    echo "Fixing SELinux permissions on ".$datadir."...\n";
     shell_exec ("semanage fcontext -a -t httpd_sys_content_t ".$fulldir);
     shell_exec ("restorecon -R ".$fulldir);
 
@@ -371,7 +373,7 @@ if ($backup == true) { // Backups!
     echo "Dumping Database...\n";
     //dumpDatabase($CFG->dbhost,$CFG->dbuser,$CFG->dbpass,$CFG->dbname,$tables=false,$database);
     shell_exec("mysqldump -u".$CFG->dbuser." -p".$CFG->dbpass." ".$CFG->dbname." > dump.sql");
-    echo "Backing up Moodledata...\n";
+    echo "Backing up ".$datadir."...\n";
     shell_exec ("cd ".$dir." && tar -czf ".$moodledata." ".$datadir." --exclude '".$datadir."/sessions' --exclude '".$datadir."/trashdir'");
     shell_exec ("cd ".$dir." && mv ".$moodledata." ".$home);
     shell_exec ("cd ".$home);
