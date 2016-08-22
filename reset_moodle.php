@@ -272,10 +272,10 @@ if ($database != null) {
 // Check the backup files exist...
 if ($options != "--backup") {
     if (!file_exists($moodledata)) {
-        echo "Cannot find ".$moodledata."! Please check the path and try again. \n";
+        die("Cannot find ".$moodledata."! Please check the path and try again. \n");
     }
     if (!file_exists($database)) {
-        echo "Cannot find ".$database."! Please check the path and try again. \n";
+        die("Cannot find ".$database."! Please check the path and try again. \n");
     }
 }
 
