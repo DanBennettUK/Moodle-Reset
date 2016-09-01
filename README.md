@@ -1,7 +1,5 @@
 #### This script is to automatically restore a site from supplied backup files.
 
-[![Build Status](https://travis-ci.org/DanBennettUK/moodle-reset.svg?branch=master)](https://travis-ci.org/DanBennettUK/moodle-reset)
-
 
 ## Installation
 
